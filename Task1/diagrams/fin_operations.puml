@@ -1,0 +1,34 @@
+@startuml
+title DFD Уровень 1: Процесс оплаты медицинских услуг
+
+actor "Пациент" as patient
+actor "Кассир" as cashier
+actor "Бухгалтер" as accountant
+database "ККМ" as kkm
+database "Платёжный Excel" as payments_excel
+database "1С:Бухгалтерия" as accounting_system
+database "Реестр договоров" as contracts
+
+patient -> cashier : Оплата наличными\nили банковской картой
+cashier -> kkm : Пробитие чека
+kkm -> accounting_system : Автоматическая передача\nчерез OLE-интеграцию
+cashier -> payments_excel : Ручное дублирование\nв Excel-файл
+accountant -> contracts : Заключение договора\nна оказание услуг
+accounting_system -> accountant : Формирование отчётности\nи налоговых документов
+
+note right of kkm
+  **Интеграционные риски:**
+  - Незащищённое соединение TCP/IP
+  - Устаревший протокол OLE
+  - Нет аутентификации между системами
+  - Нет шифрования передаваемых данных
+end note
+
+note left of payments_excel
+  **Проблемы дублирования:**
+  - Две независимые системы учёта
+  - Риск расхождения данных
+  - Избыточная обработка ПДн
+  - Увеличение поверхности атаки
+end note
+@enduml

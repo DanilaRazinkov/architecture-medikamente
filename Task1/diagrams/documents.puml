@@ -1,0 +1,31 @@
+@startuml
+title DFD Уровень 1: Медицинский приём
+
+actor "Врач" as doctor
+entity "Пациент" as patient
+database "Папка пациента" as patient_folder
+database "Реестр приёмов" as registry
+database "Сканер" as scanner
+
+patient -> doctor : Жалобы, симптомы,\nистория заболевания
+doctor -> patient_folder : Чтение предыдущих\nмедицинских записей
+doctor -> doctor : Осмотр пациента,\nпостановка диагноза
+doctor -> registry : Запись о приёме\nв Excel-файл
+doctor -> scanner : Сканирование заполненной\nмедицинской формы
+scanner -> patient_folder : Сохранение скана\nв формате PDF
+
+note right of doctor
+  **Операции с данными:**
+  1. Чтение конфиденциальных данных
+  2. Создание новой конфиденциальной информации
+  3. Хранение без классификации
+end note
+
+note left of patient_folder
+  **Уязвимости:**
+  - Медицинские данные в открытом виде
+  - Нет разграничения доступа
+  - Нет шифрования
+  - Нет цифровой подписи
+end note
+@enduml

@@ -1,0 +1,30 @@
+@startuml
+title DFD Уровень 0: Регистрация пациента
+
+actor "Пациент" as patient
+entity "Сотрудник ресепшена" as reception
+database "Patients.xlsx" as excel_db
+database "Общий сетевой диск" as shared_drive
+database "Папка пациента" as patient_folder
+
+patient -> reception : ФИО, контакты,\nдата рождения,\nпаспортные данные
+reception -> excel_db : Запись в таблицу\n«База пациентов»
+reception -> patient_folder : Создание папки с ФИО\nСохранение скана паспорта
+excel_db -> shared_drive : Файл доступен всем\nв локальной сети
+patient_folder -> shared_drive : Папка доступна всем\nсотрудникам
+
+note right of patient
+  **Конфиденциальные данные:**
+  - ФИО (L3-HIGH)
+  - Паспорт (L3-HIGH)
+  - Дата рождения (L3-HIGH)
+end note
+
+note right of excel_db
+  **Проблемы безопасности:**
+  - Нет шифрования
+  - Нет контроля версий
+  - Нет журналирования изменений
+  - Доступ по принципу всем/все
+end note
+@enduml
