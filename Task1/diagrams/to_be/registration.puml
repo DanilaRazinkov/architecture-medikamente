@@ -1,0 +1,43 @@
+@startuml
+title DFD Уровень 0: Регистрация пациента с мерами защиты
+
+actor "Пациент" as patient
+actor "Сотрудник ресепшена" as reception
+database "БД пациентов\n(PostgreSQL + TDE)" as secure_db
+database "Объектное хранилище\n(MinIO + шифрование)" as object_storage
+entity "API Gateway\n(TLS 1.3 + аутентификация)" as api_gateway
+entity "SIEM система\n(ELK Stack)" as siem
+entity "Система тегирования\n(Apache Atlas)" as tagging
+
+patient -> api_gateway : "1. Цифровая регистрация\n• TLS 1.3\n• 2FA для пациента\n• Валидация данных"
+api_gateway -> reception : "2. Уведомление о новой заявке\n• Внутренний портал\n• RBAC контроль"
+reception -> secure_db : "3. Подтверждение и сохранение\n• Шифрование AES-256\n• Маскирование в логах\n• Автотегирование"
+secure_db -> tagging : "4. Классификация данных\n• Тег: CL-RESTRICTED-DC-PII\n• Политика: шифрование + RBAC"
+tagging -> object_storage : "5. Сохранение документов\n• Шифрование на лету\n• Водяные знаки\n• Контроль версий"
+secure_db -> siem : "6. Аудит операции\n• Кто, что, когда\n• Контекст операции\n• Оценка риска"
+object_storage -> siem : "7. Аудит доступа к файлам\n• Все операции чтения/записи\n• Геолокация, устройство"
+
+note left of patient
+**Новые возможности:**
+• Онлайн-регистрация
+• Мобильное приложение
+• Электронная подпись
+• История взаимодействий
+end note
+
+note right of secure_db
+**Меры защиты данных:**
+• Transparent Data Encryption
+• Column-level шифрование
+• Маскирование в тестовых средах
+• Автоматическое обезличивание
+end note
+
+note right of siem
+**Мониторинг безопасности:**
+• Real-time алертинг
+• Обнаружение аномалий
+• Интеграция с SOAR
+• Отчёты для регуляторов
+end note
+@enduml

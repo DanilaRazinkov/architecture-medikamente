@@ -1,0 +1,84 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Диаграмма C2: Движок классификации данных перед загрузкой в аналитическое хранилище
+
+Person(admin, "Администратор", "Настраивает правила классификации")
+Person(analyst, "Аналитик", "Работает с обезличенными данными")
+
+System_Boundary(classification_engine, "Движок классификации данных") {
+    Container(ingestion, "Сервис приёма данных", "Java/Spring Boot", "Приём и буферизация данных из источников")
+    Container(schema_detector, "Детектор схем", "Python", "Анализ структуры, обнаружение изменений")
+    Container(classifier, "Классификатор", "Java + ML", "Определение уровня конфиденциальности")
+    Container(processor, "Обработчик данных", "Java", "Обезличивание, токенизация, маскирование")
+    Container(router, "Маршрутизатор", "Java", "Направление данных в соответствующий слой хранилища")
+    Container(validator, "Валидатор", "Java", "Проверка соответствия политикам")
+}
+
+System_Boundary(data_sources, "Источники данных") {
+    ContainerDb(emr, "EMR-система", "Java", "Медицинские карты")
+    ContainerDb(crm, "CRM", "Java", "Данные пациентов")
+    ContainerDb(billing, "Платёжная система", "1С", "Финансовые данные")
+    ContainerDb(file_storage, "Файловое хранилище", "Windows Server", "Excel, PDF, сканы")
+}
+
+System_Boundary(data_warehouse, "Многослойное аналитическое хранилище") {
+    ContainerDb(raw_zone, "Сырая зона", "ClickHouse", "Исходные данные, зашифрованные")
+    ContainerDb(restricted_zone, "Зона ограниченного доступа", "ClickHouse", "Данные L3-L4, токенизированные")
+    ContainerDb(anonymized_zone, "Зона обезличенных данных", "ClickHouse", "Данные L1-L2 для аналитики")
+    ContainerDb(public_zone, "Публичная зона", "ClickHouse", "Агрегаты, бизнес-метрики")
+}
+
+ContainerDb(policy_db, "Хранилище политик", "PostgreSQL", "Политики классификации и обработки")
+ContainerDb(metadata, "Каталог метаданных", "Apache Atlas", "Схемы, теги, lineage")
+Container(vault, "Хранилище ключей", "HashiCorp Vault", "Ключи шифрования, токены")
+Container(monitoring, "Система мониторинга", "Prometheus + Grafana", "Метрики, алерты")
+
+' Взаимодействия с источниками
+Rel(emr, ingestion, "Передача данных", "REST API / CDC")
+Rel(crm, ingestion, "Передача данных", "REST API")
+Rel(billing, ingestion, "Экспорт данных", "CSV/XML")
+Rel(file_storage, ingestion, "Выгрузка файлов", "SFTP")
+
+' Процесс классификации
+Rel(ingestion, schema_detector, "Данные для анализа", "Kafka")
+Rel(schema_detector, classifier, "Структура + данные")
+Rel(schema_detector, metadata, "Регистрация изменений схемы")
+Rel(classifier, policy_db, "Запрос политик", "SQL")
+Rel(classifier, metadata, "Сохранение тегов классификации")
+Rel(classifier, validator, "Данные с тегами")
+Rel(validator, processor, "Данные для обработки")
+Rel(validator, monitoring, "Метрики валидации")
+Rel(processor, vault, "Запрос ключей / токенов")
+Rel(processor, router, "Обработанные данные")
+Rel(router, raw_zone, "Исходные данные", "Зашифрованные")
+Rel(router, restricted_zone, "Токенизированные/маскированные")
+Rel(router, anonymized_zone, "Обезличенные данные")
+Rel(router, public_zone, "Агрегаты")
+Rel(router, metadata, "Lineage загрузки")
+
+' Управление и мониторинг
+Rel(admin, policy_db, "Настройка политик", "UI")
+Rel(admin, classifier, "Корректировка правил", "UI")
+Rel(analyst, anonymized_zone, "Аналитические запросы", "SQL")
+Rel(analyst, public_zone, "Отчёты", "BI Tools")
+Rel(monitoring, admin, "Оповещения", "Email/Telegram")
+
+note right of classification_engine
+**Ключевые особенности:**
+
+1. Автоопределение схемы и адаптация к изменениям
+2. Комбинированная классификация: правила + ML
+3. Поддержка Privacy by Design
+4. Сквозное отслеживание данных (lineage)
+   end note
+
+note right of data_warehouse
+**Уровни конфиденциальности:**
+L4: Критически конфиденциальные (диагнозы)
+L3: Персональные данные (ФИО, паспорт)
+L2: Контактные данные (телефон, email)
+L1: Обезличенные данные
+end note
+
+@enduml
